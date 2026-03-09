@@ -22,6 +22,9 @@ LOW_PIXEL_BRIGHTNESS = 0x2F
 HIGH_PIXEL_BRIGHTNESS = 0xAF
 BRIGHTNESS_LIMITER = 0.2 # overall dimming
 
+OFF_COLOR = 0xCF3F00 # pink
+
+
 
 last_activity = time.monotonic()
 sleeping = False
@@ -79,13 +82,19 @@ def dim_color(hex_color, brightness):
 def go_to_sleep():
     global sleeping
     draw_pixels(LOW_PIXEL_BRIGHTNESS)
-    display.brightness = 0
+    sleep_display()
     sleeping = True
+
+def sleep_display():
+    macropad.display.bus.send(0xAE, b"")
+
+def wake_display():
+    macropad.display.bus.send(0xAF, b"")
 
 def wake_up():
     global sleeping, last_activity
     draw_pixels(HIGH_PIXEL_BRIGHTNESS)
-    display.brightness = 0.2
+    wake_display()
     last_activity = time.monotonic()
     sleeping = False
 
@@ -99,12 +108,11 @@ def input_received():
 # ── Neopixel Setup ────────────────────────────
 # Light up only the assigned keys, others off
 def draw_pixels(brightness = 0xFF):
-    off_color = 0x7F002F # pink
     for i in range(12):
         if KEY_MAP[i] is not None:
             macropad.pixels[i] = dim_color(KEY_MAP[i][2], brightness)  # set to assigned color
         else:
-            macropad.pixels[i] = dim_color(off_color, brightness) 
+            macropad.pixels[i] = dim_color(OFF_COLOR, brightness) 
 
 
 # ── Key Mapping ───────────────────────────────
@@ -172,7 +180,7 @@ while True:
             if mapping is not None:
                 macropad.pixels[key_num] = mapping[2]
             else:
-                macropad.pixels[key_num] = off_color
+                macropad.pixels[key_num] = OFF_COLOR
 
     # -- Check rotary encoder for volume scrub --
     current_pos = macropad.encoder
