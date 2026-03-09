@@ -17,8 +17,9 @@ from adafruit_hid.consumer_control import ConsumerControl     # type: ignore # s
 from adafruit_hid.consumer_control_code import ConsumerControlCode  # type: ignore # media key codes
 from adafruit_display_text import label                       # type: ignore # text on OLED
 
-SLEEP_TIMEOUT = 5           #Seconds
-LOW_PIXEL_BRIGHTNESS = 0x2F
+SLEEP_TIMEOUT = 5       # Seconds
+DEEP_SLEEP_TIMEOUT = 300  # Seconds
+LOW_PIXEL_BRIGHTNESS = 0x4F
 HIGH_PIXEL_BRIGHTNESS = 0xAF
 BRIGHTNESS_LIMITER = 0.2 # overall dimming
 
@@ -84,6 +85,9 @@ def go_to_sleep():
     draw_pixels(LOW_PIXEL_BRIGHTNESS)
     sleep_display()
     sleeping = True
+
+def go_to_deep_sleep():
+    draw_pixels(0)
 
 def sleep_display():
     macropad.display.bus.send(0xAE, b"")
@@ -206,5 +210,10 @@ while True:
         input_received()
         cc.send(ConsumerControlCode.MUTE)
 
-    if not sleeping and (time.monotonic() - last_activity > SLEEP_TIMEOUT):
+    elapsed = time.monotonic() - last_activity
+
+    if elapsed > DEEP_SLEEP_TIMEOUT:
+        go_to_deep_sleep()
+
+    elif not sleeping and (elapsed > SLEEP_TIMEOUT):
         go_to_sleep()
